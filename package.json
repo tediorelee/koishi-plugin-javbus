@@ -1,8 +1,17 @@
 {
   "name": "koishi-plugin-javbus",
   "description": "查询javbus番号",
-  "private": true,
-  "version": "1.0.0",
+  "author": {
+    "name": "TEDIORELEE",
+    "email": "tediorelee@gmail.com",
+    "url": "https://github.com/tediorelee"
+  },
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tediorelee/koishi-plugin-javbus.git"
+  },
+  "version": "1.0.1",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [

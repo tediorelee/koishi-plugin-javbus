@@ -16,18 +16,23 @@ export const Config = Schema.object({
   allowPreviewCover: Schema.boolean().default(false).description('是否允许返回封面预览')
 })
 
-export const apiEndpoint = '/api/v1/movies/';
+export const movieDetailApi = '/api/v1/movies/';
+export const starDetailApi = '/api/v1/stars/';
 
 export function apply(ctx: Context, config: Config) {
-  async function fetchDataFromAPI(id: string) {
-    return await ctx.http.get(config.apiPrefix + apiEndpoint  + id);
+  async function fetchMovieDetail(id: string) {
+    return await ctx.http.get(config.apiPrefix + movieDetailApi  + id);
+  };
+
+  async function fetchStarDetail(id: string) {
+    return await ctx.http.get(config.apiPrefix + starDetailApi  + id);
   };
 
   ctx.command('jav <id:text>', '查找javbus番号')
     .action(async ({session}, id) => {
       try {
         if (!id) return '请提供番号!'
-        const result = await fetchDataFromAPI(id)
+        const result = await fetchMovieDetail(id)
         const {
           title,
           img,
@@ -40,6 +45,7 @@ export function apply(ctx: Context, config: Config) {
         const coverImg = await ctx.http.get<ArrayBuffer>(img, {
           responseType: 'arraybuffer',
         });
+        const starId = stars[0]?.starId;
         const tagsArray = tags.map(tag => tag.tagName);
         const tagString = tagsArray.length > 1 ? tagsArray.join(', ') : tagsArray[0];
         const publisherName = publisher?.publisherName;
@@ -48,14 +54,24 @@ export function apply(ctx: Context, config: Config) {
         const magnetsWithSubtitle = magnets.filter(item => item.hasSubtitle);
         const magnetsMaxBytes = magnetsWithSubtitle && magnetsWithSubtitle.length ? magnetsWithSubtitle.find(m => Math.max(m.numberSize)) : magnets.find(m => Math.max(m.numberSize));
 
+        const starDetail = await fetchStarDetail(starId);
+        const {
+          avatar,
+          name
+        } = starDetail;
+
+        const avatarImg = await ctx.http.get<ArrayBuffer>(avatar, {
+          responseType: 'arraybuffer',
+        });
+
         if (!config.allowDownloadLink && !config.allowPreviewCover) {
-          await session.sendQueued(`标题: ${title}\n发行日期: ${date}\n女优: ${starString}\n发行商: ${publisherName}\n标签: ${tagString}`)
+          await session.sendQueued(`标题: ${title}\n发行日期: ${date}\n女优: ${starString}\n发行商: ${publisherName}\n标签: ${tagString}\n${segment.image(avatarImg)}`)
         } else if (config.allowDownloadLink && !config.allowPreviewCover) {
-          await session.sendQueued(`标题: ${title}\n发行日期: ${date}\n女优: ${starString}\n发行商: ${publisherName}\n标签: ${tagString}\n磁力: ${magnetsMaxBytes.link}`)
+          await session.sendQueued(`标题: ${title}\n发行日期: ${date}\n女优: ${starString}\n发行商: ${publisherName}\n标签: ${tagString}\n磁力: ${magnetsMaxBytes.link}\n${segment.image(avatarImg)}`)
         } else if (!config.allowDownloadLink && config.allowPreviewCover) {
-          await session.sendQueued(`标题: ${title}\n发行日期: ${date}\n女优: ${starString}\n发行商: ${publisherName}\n标签: ${tagString}\n${segment.image(coverImg)}`)
+          await session.sendQueued(`标题: ${title}\n发行日期: ${date}\n女优: ${starString}\n发行商: ${publisherName}\n标签: ${tagString}\n${segment.image(coverImg)}\n${segment.image(avatarImg)}`)
         } else {
-          await session.sendQueued(`标题: ${title}\n发行日期: ${date}\n女优: ${starString}\n发行商: ${publisherName}\n标签: ${tagString}\n磁力: ${magnetsMaxBytes.link}${segment.image(coverImg)}`)
+          await session.sendQueued(`标题: ${title}\n发行日期: ${date}\n女优: ${starString}\n发行商: ${publisherName}\n标签: ${tagString}\n磁力: ${magnetsMaxBytes.link}${segment.image(coverImg)}\n${segment.image(avatarImg)}`)
         }
       } catch(err) {
         console.log(err);

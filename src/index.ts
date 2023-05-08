@@ -11,9 +11,10 @@ export interface Config {
 }
 
 export const Config = Schema.object({
+  description: Schema.string().default('这里不用填写东西').description('该插件请低调使用, 请勿配置于QQ或者是其他国内APP平台, 带来的后果请自行承担'),
   apiPrefix: Schema.string().default('').required().description('请填写你的api地址前缀'),
   allowDownloadLink: Schema.boolean().default(false).description('是否允许返回磁力链接'),
-  allowPreviewCover: Schema.boolean().default(false).description('是否允许返回封面预览')
+  allowPreviewCover: Schema.boolean().default(false).description('是否允许返回封面预览(包含NSFW内容, 请酌情选择需不需要开启该配置项)')
 })
 
 export const movieDetailApi = '/api/v1/movies/';
@@ -38,40 +39,27 @@ export function apply(ctx: Context, config: Config) {
           img,
           magnets,
           date,
-          tags,
           publisher,
           stars
         } = result;
         const coverImg = await ctx.http.get<ArrayBuffer>(img, {
           responseType: 'arraybuffer',
         });
-        const starId = stars[0]?.starId;
-        const tagsArray = tags.map(tag => tag.tagName);
-        const tagString = tagsArray.length > 1 ? tagsArray.join(', ') : tagsArray[0];
-        const publisherName = publisher?.publisherName;
-        const starsArray = stars.map(star => star.starName);
+        const publisherName = publisher?.name;
+        const starsArray = stars.map(star => star.name);
         const starString = starsArray.length > 1 ? starsArray.join(', ') : starsArray[0];
         const magnetsWithSubtitle = magnets.filter(item => item.hasSubtitle);
         const magnetsMaxBytes = magnetsWithSubtitle && magnetsWithSubtitle.length ? magnetsWithSubtitle.find(m => Math.max(m.numberSize)) : magnets.find(m => Math.max(m.numberSize));
 
-        const starDetail = await fetchStarDetail(starId);
-        const {
-          avatar,
-          name
-        } = starDetail;
-
-        const avatarImg = await ctx.http.get<ArrayBuffer>(avatar, {
-          responseType: 'arraybuffer',
-        });
-
         if (!config.allowDownloadLink && !config.allowPreviewCover) {
-          await session.sendQueued(`标题: ${title}\n发行日期: ${date}\n女优: ${starString}\n发行商: ${publisherName}\n标签: ${tagString}\n${segment.image(avatarImg)}`)
+          await session.sendQueued(`标题: ${title}\n发行日期: ${date}\n女优: ${starString}\n发行商: ${publisherName}`)
         } else if (config.allowDownloadLink && !config.allowPreviewCover) {
-          await session.sendQueued(`标题: ${title}\n发行日期: ${date}\n女优: ${starString}\n发行商: ${publisherName}\n标签: ${tagString}\n磁力: ${magnetsMaxBytes.link}\n${segment.image(avatarImg)}`)
+          await session.sendQueued(`标题: ${title}\n发行日期: ${date}\n女优: ${starString}\n发行商: ${publisherName}\n磁力: ${magnetsMaxBytes.link}`)
         } else if (!config.allowDownloadLink && config.allowPreviewCover) {
-          await session.sendQueued(`标题: ${title}\n发行日期: ${date}\n女优: ${starString}\n发行商: ${publisherName}\n标签: ${tagString}\n${segment.image(coverImg)}\n${segment.image(avatarImg)}`)
+          await session.sendQueued(`标题: ${title}\n发行日期: ${date}\n女优: ${starString}\n发行商: ${publisherName}\n${segment.image(coverImg)}`)
         } else {
-          await session.sendQueued(`标题: ${title}\n发行日期: ${date}\n女优: ${starString}\n发行商: ${publisherName}\n标签: ${tagString}\n磁力: ${magnetsMaxBytes.link}${segment.image(coverImg)}\n${segment.image(avatarImg)}`)
+          console.log('123')
+          await session.sendQueued(`标题: ${title}\n发行日期: ${date}\n女优: ${starString}\n发行商: ${publisherName}\n磁力: ${magnetsMaxBytes.link}${segment.image(coverImg)}`)
         }
       } catch(err) {
         console.log(err);
